@@ -94,7 +94,7 @@ public class CustomerServlet extends HttpServlet2 {
         }
     }
     private void searchPaginatedCustomers(String query, int size, int page, HttpServletResponse response) throws IOException {
-        try(Connection connection = pool.getConnection()){
+        try(Connection connection = pool.getConnection()) {
             PreparedStatement countStm = connection.prepareStatement
                     ("SELECT COUNT(id) as count FROM customer WHERE id LIKE ? OR name LIKE ? OR address LIKE ?");
 
