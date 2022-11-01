@@ -11,7 +11,7 @@ import java.io.IOException;
 public class ItemServlet extends HttpServlet2 {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        response.getWriter().println("items doGet()");
+            response.getWriter().println("item doGet()");
     }
 
     @Override
