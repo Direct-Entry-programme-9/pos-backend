@@ -16,6 +16,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @WebServlet(name = "CustomerServlet", value = "/customers/*", loadOnStartup = 0)
 public class CustomerServlet extends HttpServlet2 {
@@ -25,12 +27,29 @@ public class CustomerServlet extends HttpServlet2 {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 //        response.getWriter().println("customer doGet()");
-        loadAllCustomers(response);
-
         if (request.getPathInfo() == null || request.getPathInfo().equals("/")) {
             String query = request.getParameter("q");
             String size = request.getParameter("size");
             String page = request.getParameter("page");
+
+            if (query != null && size != null && page != null){
+                if (size.matches("\\d+") && page.matches("\\d+")){
+                    searchPaginatedCustomers(query, Integer.parseInt(size),Integer.parseInt(page), response);
+                } else {
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid page or size");
+                }
+            } else {
+                loadAllCustomers(response);
+            }
+        } else {
+            Matcher matcher = Pattern.compile("^/([A-Fa-f0-9]{8}(-[A-Fa-f0-9]{4}){3}-[A-Fa-f0-9]{12})/?$")
+                    .matcher(request.getPathInfo());
+            if (matcher.matches()){
+                getCustomerDetails(matcher.group(1), response);
+            } else {
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,"Expented valid UUID");
+                response.sendError(HttpServletResponse.SC_NOT_IMPLEMENTED, "Expected valid UUID");
+            }
         }
     }
 
@@ -76,6 +95,18 @@ public class CustomerServlet extends HttpServlet2 {
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Fail to load customers");
         }
     }
-    private void searchPaginatedCustomers(String query, int size, int page, HttpServletResponse response){}
-    private void getCustomerDetails(String customerId, HttpServletResponse response){}
+    private void searchPaginatedCustomers(String query, int size, int page, HttpServletResponse response){
+        try {
+            response.getWriter().println("customer searchPaginatedCustomers()");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    private void getCustomerDetails(String customerId, HttpServletResponse response){
+        try {
+            response.getWriter().println("customer getCustomerDetails()");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }
