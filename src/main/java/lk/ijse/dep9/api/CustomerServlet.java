@@ -24,12 +24,14 @@ public class CustomerServlet extends HttpServlet2 {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        response.getWriter().println("customer doGet()");
-        /*if (request.getPathInfo() == null || request.getPathInfo().equals("/")) {
+//        response.getWriter().println("customer doGet()");
+        loadAllCustomers(response);
+
+        if (request.getPathInfo() == null || request.getPathInfo().equals("/")) {
             String query = request.getParameter("q");
             String size = request.getParameter("size");
             String page = request.getParameter("page");
-        }*/
+        }
     }
 
     @Override
