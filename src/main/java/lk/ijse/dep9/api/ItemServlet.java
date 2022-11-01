@@ -8,6 +8,11 @@ import lk.ijse.dep9.api.util.HttpServlet2;
 
 import javax.sql.DataSource;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @WebServlet(name = "ItemServlet", value = "/items/*", loadOnStartup = 0)
 
@@ -33,8 +38,35 @@ public class ItemServlet extends HttpServlet2 {
     }
 
     @Override
-    protected void doDelete(HttpServletRequest req, HttpServletResponse response) throws ServletException, IOException {
+    protected void doDelete(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        if (request.getPathInfo() == null || request.getPathInfo().equals("/")){
+            response.sendError(HttpServletResponse.SC_NOT_IMPLEMENTED, "Expected valid UUID");
+            return;
+        }
 
+        Matcher matcher = Pattern.compile("^/([A-Fa-f0-9]{8}(-[A-Fa-f0-9]{4}){3}-[A-Fa-f0-9]{12})/?$")
+                .matcher(request.getPathInfo());
+        if (matcher.matches()){
+            deleteItem(matcher.group(1), response);
+        } else {
+            response.sendError(HttpServletResponse.SC_NOT_IMPLEMENTED, "Expected valid UUID");
         }
     }
-}
+
+    private void deleteItem(String itemCode, HttpServletResponse response){
+        try {
+            Connection connection = pool.getConnection();
+            PreparedStatement stm = connection.prepareStatement("DELETE FROM item WHERE id?");
+            stm.setString(1, itemCode);
+            int affectedRows = stm.executeUpdate();
+            if (affectedRows == 0){
+                response.sendError(HttpServletResponse.SC_NOT_FOUND, "Invalid member Id");
+            } else {
+                response.setStatus(HttpServletResponse.SC_NO_CONTENT);
+            }
+        } catch (SQLException | IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    }
+
