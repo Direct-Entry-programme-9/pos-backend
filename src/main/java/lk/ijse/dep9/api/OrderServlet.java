@@ -1,9 +1,13 @@
 package lk.ijse.dep9.api;
 
 import jakarta.annotation.Resource;
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.bind.JsonbException;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import jakarta.servlet.annotation.*;
+import lk.ijse.dep9.dto.CustomerDTO;
 
 import javax.sql.DataSource;
 import java.io.IOException;
@@ -17,14 +21,20 @@ public class OrderServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        try (Connection connection = pool.getConnection()) {
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        response.getWriter().println("orders doPost()");
+        try {
+            if (!request.getContentType().startsWith("application/json")) {
+                throw new JsonbException("Invalid JSON");
+            }
+            Jsonb jsonb = JsonbBuilder.create();
+            CustomerDTO customer = jsonb.fromJson(request.getReader(), CustomerDTO.class);
+        }
+        catch (JsonbException e) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid JSON");
+        }
     }
 }
