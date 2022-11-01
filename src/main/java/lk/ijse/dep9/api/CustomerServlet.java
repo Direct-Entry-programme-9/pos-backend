@@ -66,7 +66,7 @@ public class CustomerServlet extends HttpServlet2 {
         response.getWriter().println("customer doPatch()");
     }
 
-    private void loadAllCustomers(HttpServletResponse response) throws IOException {
+    private void loadAllCustomers (HttpServletResponse response) throws IOException {
         try {
             Connection connection = pool.getConnection();
 
