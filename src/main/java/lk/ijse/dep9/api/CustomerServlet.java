@@ -11,11 +11,9 @@ import lk.ijse.dep9.dto.CustomerDTO;
 
 import javax.sql.DataSource;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -95,11 +93,43 @@ public class CustomerServlet extends HttpServlet2 {
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Fail to load customers");
         }
     }
-    private void searchPaginatedCustomers(String query, int size, int page, HttpServletResponse response){
-        try {
-            response.getWriter().println("customer searchPaginatedCustomers()");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+    private void searchPaginatedCustomers(String query, int size, int page, HttpServletResponse response) throws IOException {
+        try(Connection connection = pool.getConnection()){
+            PreparedStatement countStm = connection.prepareStatement
+                    ("SELECT COUNT(id) as count FROM customer WHERE id LIKE ? OR name LIKE ? OR address LIKE ?");
+
+            PreparedStatement stm = connection.prepareStatement
+                    ("SELECT * FROM customer WHERE id LIKE ? OR name LIKE ? OR address LIKE ? LIMIT ? OFFSET ?");
+
+            query = "%"+query+"%";
+
+            for (int i = 1; i < 4; i++) {
+                countStm.setString(i, query);
+                stm.setString(i, query);
+            }
+            stm.setInt(4, size);
+            stm.setInt(5, (page-1)*size);
+
+            ResultSet rst = countStm.executeQuery();
+            rst.next();
+            response.setIntHeader("X-Total-Count", rst.getInt("count"));
+            rst = stm.executeQuery();
+
+            ArrayList<CustomerDTO> customers = new ArrayList<>();
+
+            while (rst.next()){
+                String id = rst.getString("id");
+                String name = rst.getString("name");
+                String address = rst.getString("address");
+                customers.add(new CustomerDTO(id, name, address));
+            }
+
+            response.setContentType("application/json");
+            JsonbBuilder.create().toJson(customers, response.getWriter());
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error while loading the data from DB");
         }
     }
     private void getCustomerDetails(String customerId, HttpServletResponse response){
