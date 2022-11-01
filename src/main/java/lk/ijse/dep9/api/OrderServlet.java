@@ -8,6 +8,7 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import jakarta.servlet.annotation.*;
 import lk.ijse.dep9.dto.CustomerDTO;
+import lk.ijse.dep9.dto.OrderDTO;
 
 import javax.sql.DataSource;
 import java.io.IOException;
@@ -31,7 +32,7 @@ public class OrderServlet extends HttpServlet {
                 throw new JsonbException("Invalid JSON");
             }
             Jsonb jsonb = JsonbBuilder.create();
-            CustomerDTO customer = jsonb.fromJson(request.getReader(), CustomerDTO.class);
+            OrderDTO order = jsonb.fromJson(request.getReader(), OrderDTO.class);
         }
         catch (JsonbException e) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid JSON");
