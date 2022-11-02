@@ -15,12 +15,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @WebServlet(name = "ItemServlet", value = "/items/*", loadOnStartup = 0)
-
-
-
-
 public class ItemServlet extends HttpServlet2 {
-    @Resource(lookup = "java:/comp/env/jdbc/dep9-lms")
+
+    @Resource(lookup = "java:/comp/env/jdbc/dep9_pos")
     private DataSource pool;
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -53,20 +50,23 @@ public class ItemServlet extends HttpServlet2 {
         }
     }
 
-    private void deleteItem(String itemCode, HttpServletResponse response){
-        try {
-            Connection connection = pool.getConnection();
-            PreparedStatement stm = connection.prepareStatement("DELETE FROM item WHERE id?");
+    private void deleteItem(String itemCode, HttpServletResponse response) throws IOException {
+        try (Connection connection = pool.getConnection()){
+            PreparedStatement stm = connection.prepareStatement("DELETE FROM item WHERE code = ?");
             stm.setString(1, itemCode);
             int affectedRows = stm.executeUpdate();
+            System.out.println(affectedRows);
             if (affectedRows == 0){
                 response.sendError(HttpServletResponse.SC_NOT_FOUND, "Invalid member Id");
             } else {
                 response.setStatus(HttpServletResponse.SC_NO_CONTENT);
             }
+
+
         } catch (SQLException | IOException e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error while loading the database");
         }
     }
-    }
+}
 
