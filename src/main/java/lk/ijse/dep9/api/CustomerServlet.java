@@ -3,6 +3,7 @@ package lk.ijse.dep9.api;
 import jakarta.annotation.Resource;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.bind.JsonbException;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import jakarta.servlet.annotation.*;
@@ -62,8 +63,27 @@ public class CustomerServlet extends HttpServlet2 {
     }
 
     @Override
-    protected void doPatch(HttpServletRequest req, HttpServletResponse response) throws ServletException, IOException {
-        response.getWriter().println("customer doPatch()");
+    protected void doPatch(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        if (request.getPathInfo() == null || request.getPathInfo().equals("/")){
+            response.sendError(HttpServletResponse.SC_NOT_IMPLEMENTED, "Expected valid UUID");
+            return;
+        }
+        Matcher matcher = Pattern.compile("^/([A-Fa-f0-9]{8}(-[A-Fa-f0-9]{4}){3}-[A-Fa-f0-9]{12})/?$")
+                .matcher(request.getPathInfo());
+        if (matcher.matches()){
+            updateCustomer(matcher.group(1), request, response);
+        } else {
+            response.sendError(HttpServletResponse.SC_NOT_IMPLEMENTED, "Expected valid UUID");
+        }
+    }
+    private void updateCustomer(String customerId, HttpServletRequest request, HttpServletResponse response) throws IOException {
+        try {
+            if (request.getContentType() == null || !request.getContentType().startsWith("application/json")){
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid json file");
+            }
+        } catch (JsonbException e) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
+        }
     }
 
     private void loadAllCustomers (HttpServletResponse response) throws IOException {
