@@ -37,7 +37,7 @@ public class OrderServlet extends HttpServlet {
             OrderDTO order = jsonb.fromJson(request.getReader(), OrderDTO.class);
             try (Connection connection = pool.getConnection()) {
                 order.setId(UUID.randomUUID().toString());
-                PreparedStatement stm = connection.prepareStatement("INSERT INTO order (id, date, customer) VALUES (?, ?, ?, ?)");
+                PreparedStatement stm = connection.prepareStatement("INSERT INTO order (id, date, customer) VALUES (?, ?, ?)");
                 stm.setString(1, order.getId());
                 stm.setDate(2, order.getDate());
                 stm.setString(3, order.getCustomerId());
