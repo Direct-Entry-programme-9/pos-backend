@@ -11,11 +11,11 @@ import lk.ijse.dep9.dto.CustomerDTO;
 
 import javax.sql.DataSource;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @WebServlet(name = "CustomerServlet", value = "/customers/*", loadOnStartup = 0)
 public class CustomerServlet extends HttpServlet2 {
@@ -24,12 +24,31 @@ public class CustomerServlet extends HttpServlet2 {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        response.getWriter().println("customer doGet()");
-        /*if (request.getPathInfo() == null || request.getPathInfo().equals("/")) {
+//        response.getWriter().println("customer doGet()");
+        if (request.getPathInfo() == null || request.getPathInfo().equals("/")) {
             String query = request.getParameter("q");
             String size = request.getParameter("size");
             String page = request.getParameter("page");
-        }*/
+
+            if (query != null && size != null && page != null){
+                if (size.matches("\\d+") && page.matches("\\d+")){
+                    searchPaginatedCustomers(query, Integer.parseInt(size),Integer.parseInt(page), response);
+                } else {
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid page or size");
+                }
+            } else {
+                loadAllCustomers(response);
+            }
+        } else {
+            Matcher matcher = Pattern.compile("^/([A-Fa-f0-9]{8}(-[A-Fa-f0-9]{4}){3}-[A-Fa-f0-9]{12})/?$")
+                    .matcher(request.getPathInfo());
+            if (matcher.matches()){
+                getCustomerDetails(matcher.group(1), response);
+            } else {
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,"Expented valid UUID");
+                response.sendError(HttpServletResponse.SC_NOT_IMPLEMENTED, "Expected valid UUID");
+            }
+        }
     }
 
     @Override
@@ -47,7 +66,7 @@ public class CustomerServlet extends HttpServlet2 {
         response.getWriter().println("customer doPatch()");
     }
 
-    private void loadAllCustomers(HttpServletResponse response) throws IOException {
+    private void loadAllCustomers (HttpServletResponse response) throws IOException {
         try {
             Connection connection = pool.getConnection();
 
@@ -74,6 +93,50 @@ public class CustomerServlet extends HttpServlet2 {
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Fail to load customers");
         }
     }
-    private void searchPaginatedCustomers(String query, int size, int page, HttpServletResponse response){}
-    private void getCustomerDetails(String customerId, HttpServletResponse response){}
+    private void searchPaginatedCustomers(String query, int size, int page, HttpServletResponse response) throws IOException {
+        try(Connection connection = pool.getConnection()) {
+            PreparedStatement countStm = connection.prepareStatement
+                    ("SELECT COUNT(id) as count FROM customer WHERE id LIKE ? OR name LIKE ? OR address LIKE ?");
+
+            PreparedStatement stm = connection.prepareStatement
+                    ("SELECT * FROM customer WHERE id LIKE ? OR name LIKE ? OR address LIKE ? LIMIT ? OFFSET ?");
+
+            query = "%"+query+"%";
+
+            for (int i = 1; i < 4; i++) {
+                countStm.setString(i, query);
+                stm.setString(i, query);
+            }
+            stm.setInt(4, size);
+            stm.setInt(5, (page-1)*size);
+
+            ResultSet rst = countStm.executeQuery();
+            rst.next();
+            response.setIntHeader("X-Total-Count", rst.getInt("count"));
+            rst = stm.executeQuery();
+
+            ArrayList<CustomerDTO> customers = new ArrayList<>();
+
+            while (rst.next()){
+                String id = rst.getString("id");
+                String name = rst.getString("name");
+                String address = rst.getString("address");
+                customers.add(new CustomerDTO(id, name, address));
+            }
+
+            response.setContentType("application/json");
+            JsonbBuilder.create().toJson(customers, response.getWriter());
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error while loading the data from DB");
+        }
+    }
+    private void getCustomerDetails(String customerId, HttpServletResponse response){
+        try {
+            response.getWriter().println("customer getCustomerDetails()");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }
