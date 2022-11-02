@@ -45,7 +45,7 @@ public class CustomerServlet extends HttpServlet2 {
             if (matcher.matches()){
                 getCustomerDetails(matcher.group(1), response);
             } else {
-                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,"Expented valid UUID");
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,"Expected valid UUID");
                 response.sendError(HttpServletResponse.SC_NOT_IMPLEMENTED, "Expected valid UUID");
             }
         }
@@ -132,11 +132,24 @@ public class CustomerServlet extends HttpServlet2 {
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error while loading the data from DB");
         }
     }
-    private void getCustomerDetails(String customerId, HttpServletResponse response){
-        try {
-            response.getWriter().println("customer getCustomerDetails()");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+    private void getCustomerDetails(String customerId, HttpServletResponse response) throws IOException {
+        try(Connection connection = pool.getConnection()){
+            PreparedStatement stm = connection.prepareStatement("SELECT * FROM customer WHERE id=?");
+            stm.setString(1, customerId);
+            ResultSet rst = stm.executeQuery();
+            rst.next();
+
+            String id = rst.getString("id");
+            String name = rst.getString("name");
+            String address = rst.getString("address");
+            CustomerDTO customer1 = new CustomerDTO(id, name, address);
+
+            response.setContentType("application/json");
+            JsonbBuilder.create().toJson(customer1, response.getWriter());
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error occurred while loading the database");
         }
     }
 }
